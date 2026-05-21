@@ -1,89 +1,125 @@
-import React from "react";
+import React, { useState } from "react";
 import { ScrollView, Text, StyleSheet, View, Pressable } from "react-native";
 import Card from "../components/Card";
 import { COLORS } from "../constants/theme";
+import ChangePasswordModal from "../components/ChangePasswordModal";
 
 type Props = {
   onLogout: () => void;
+  onNavigate?: (screen: "invoice" | "contract" | "profile") => void;
 };
 
 const menuItems = [
   {
+    key: "profile",
     title: "Thông tin cá nhân",
     desc: "Xem và cập nhật thông tin người thuê",
   },
   {
+    key: "contract",
     title: "Hợp đồng",
     desc: "Xem hợp đồng thuê phòng hiện tại",
   },
   {
+    key: "payment",
     title: "Lịch sử thanh toán",
     desc: "Xem các hóa đơn đã thanh toán",
   },
   {
+    key: "password",
     title: "Đổi mật khẩu",
     desc: "Cập nhật mật khẩu đăng nhập",
   },
 ];
 
-export default function AccountScreen({ onLogout }: Props) {
+export default function AccountScreen({ onLogout, onNavigate }: Props) {
+  const [passwordVisible, setPasswordVisible] = useState(false);
+
+  const handleMenuPress = (key: string) => {
+    if (key === "profile") {
+      onNavigate?.("profile");
+      return;
+    }
+
+    if (key === "password") {
+      setPasswordVisible(true);
+      return;
+    }
+
+    if (key === "contract") {
+      onNavigate?.("contract");
+      return;
+    }
+
+    if (key === "payment") {
+      onNavigate?.("invoice");
+    }
+  };
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <Text style={styles.title}>Tài khoản</Text>
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.title}>Tài khoản</Text>
 
-      <Card style={styles.profileCard}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>A</Text>
-        </View>
+        <Card style={styles.profileCard}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>A</Text>
+          </View>
 
-        <Text style={styles.name}>Nguyễn Văn A</Text>
-        <Text style={styles.phone}>0901234567</Text>
+          <Text style={styles.name}>Nguyễn Văn A</Text>
+          <Text style={styles.phone}>0901234567</Text>
 
-        <View style={styles.roomBadge}>
-          <Text style={styles.roomText}>Phòng A101</Text>
-        </View>
-      </Card>
-
-      <View style={styles.statRow}>
-        <Card style={styles.statCard}>
-          <Text style={styles.statNumber}>2</Text>
-          <Text style={styles.statLabel}>Hóa đơn</Text>
+          <View style={styles.roomBadge}>
+            <Text style={styles.roomText}>Phòng A101</Text>
+          </View>
         </Card>
 
-        <Card style={styles.statCard}>
-          <Text style={styles.statNumber}>1</Text>
-          <Text style={styles.statLabel}>Sửa chữa</Text>
-        </Card>
-
-        <Card style={styles.statCard}>
-          <Text style={styles.statNumber}>12</Text>
-          <Text style={styles.statLabel}>Tháng thuê</Text>
-        </Card>
-      </View>
-
-      <Text style={styles.sectionTitle}>Cài đặt tài khoản</Text>
-
-      {menuItems.map((item) => (
-        <Pressable key={item.title}>
-          <Card style={styles.menuCard}>
-            <View>
-              <Text style={styles.menuTitle}>{item.title}</Text>
-              <Text style={styles.menuDesc}>{item.desc}</Text>
-            </View>
-
-            <Text style={styles.arrow}>›</Text>
+        <View style={styles.statRow}>
+          <Card style={styles.statCard}>
+            <Text style={styles.statNumber}>2</Text>
+            <Text style={styles.statLabel}>Hóa đơn</Text>
           </Card>
-        </Pressable>
-      ))}
 
-      <Pressable style={styles.logoutButton} onPress={onLogout}>
-        <Text style={styles.logoutText}>Đăng xuất</Text>
-      </Pressable>
-    </ScrollView>
+          <Card style={styles.statCard}>
+            <Text style={styles.statNumber}>1</Text>
+            <Text style={styles.statLabel}>Sửa chữa</Text>
+          </Card>
+
+          <Card style={styles.statCard}>
+            <Text style={styles.statNumber}>12</Text>
+            <Text style={styles.statLabel}>Tháng thuê</Text>
+          </Card>
+        </View>
+
+        <Text style={styles.sectionTitle}>Cài đặt tài khoản</Text>
+
+        {menuItems.map((item) => (
+          <Pressable key={item.key} onPress={() => handleMenuPress(item.key)}>
+            <Card style={styles.menuCard}>
+              <View style={styles.menuInfo}>
+                <Text style={styles.menuTitle}>{item.title}</Text>
+                <Text style={styles.menuDesc}>{item.desc}</Text>
+              </View>
+
+              <Text style={styles.arrow}>›</Text>
+            </Card>
+          </Pressable>
+        ))}
+
+        <Pressable style={styles.logoutButton} onPress={onLogout}>
+          <Text style={styles.logoutText}>Đăng xuất</Text>
+        </Pressable>
+      </ScrollView>
+
+      <ChangePasswordModal
+        visible={passwordVisible}
+        onClose={() => setPasswordVisible(false)}
+      />
+    </>
   );
 }
 
@@ -179,6 +215,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  menuInfo: {
+    flex: 1,
+  },
   menuTitle: {
     fontSize: 14,
     fontWeight: "900",
@@ -189,7 +228,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 5,
     lineHeight: 18,
-    maxWidth: 260,
   },
   arrow: {
     fontSize: 28,

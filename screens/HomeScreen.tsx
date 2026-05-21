@@ -9,7 +9,11 @@ import {
 import Card from "../components/Card";
 import { COLORS } from "../constants/theme";
 
-export default function HomeScreen() {
+type Props = {
+  onNavigate: (screen: "invoice" | "repair" | "contract" | "utility") => void;
+};
+
+export default function HomeScreen({ onNavigate }: Props) {
   return (
     <ScrollView
       style={styles.container}
@@ -32,49 +36,68 @@ export default function HomeScreen() {
 
         <Text style={styles.smallText}>Hạn thanh toán: 05/06/2026</Text>
 
-        <Pressable style={styles.primaryButton}>
+        <Pressable
+          style={styles.primaryButton}
+          onPress={() => onNavigate("invoice")}
+        >
           <Text style={styles.primaryText}>Thanh toán ngay</Text>
         </Pressable>
       </Card>
 
       <View style={styles.quickGrid}>
-        <Pressable style={styles.quickItem}>
+        <Pressable
+          style={styles.quickItem}
+          onPress={() => onNavigate("contract")}
+        >
           <Card style={styles.quickCard}>
             <Text style={styles.quickText}>Hợp đồng</Text>
           </Card>
         </Pressable>
 
-        <Pressable style={styles.quickItem}>
+        <Pressable
+          style={styles.quickItem}
+          onPress={() => onNavigate("utility")}
+        >
           <Card style={styles.quickCard}>
             <Text style={styles.quickText}>Điện nước</Text>
           </Card>
         </Pressable>
 
-        <Pressable style={styles.quickItem}>
+        <Pressable
+          style={styles.quickItem}
+          onPress={() => onNavigate("repair")}
+        >
           <Card style={styles.quickCard}>
             <Text style={styles.quickText}>Sửa chữa</Text>
           </Card>
         </Pressable>
 
-        <Pressable style={styles.quickItem}>
+        <Pressable
+          style={styles.quickItem}
+          onPress={() => onNavigate("invoice")}
+        >
           <Card style={styles.quickCard}>
             <Text style={styles.quickText}>Hóa đơn</Text>
           </Card>
         </Pressable>
       </View>
 
-      <Card style={styles.infoCard}>
-        <Text style={styles.cardTitle}>Hợp đồng</Text>
-        <Text style={styles.cardDesc}>Ngày hết hạn: 30/12/2026</Text>
-      </Card>
+      <Pressable onPress={() => onNavigate("contract")}>
+        <Card style={styles.infoCard}>
+          <Text style={styles.cardTitle}>Hợp đồng</Text>
+          <Text style={styles.cardDesc}>Ngày hết hạn: 30/12/2026</Text>
+        </Card>
+      </Pressable>
 
-      <Card style={styles.infoCard}>
-        <Text style={styles.cardTitle}>Máy lạnh không hoạt động</Text>
+      <Pressable onPress={() => onNavigate("repair")}>
+        <Card style={styles.infoCard}>
+          <Text style={styles.cardTitle}>Máy lạnh không hoạt động</Text>
 
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>Đang xử lý</Text>
-        </View>
-      </Card>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Đang xử lý</Text>
+          </View>
+        </Card>
+      </Pressable>
     </ScrollView>
   );
 }

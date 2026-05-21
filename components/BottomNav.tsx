@@ -3,7 +3,14 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../constants/theme";
 
-type Tab = "home" | "invoice" | "repair" | "contract" | "account";
+type Tab =
+  | "home"
+  | "invoice"
+  | "repair"
+  | "contract"
+  | "account"
+  | "utility"
+  | "profile";
 
 type Props = {
   activeTab: Tab;
@@ -55,7 +62,10 @@ export default function BottomNav({ activeTab, onChangeTab }: Props) {
     <View style={styles.wrapper}>
       <View style={styles.container}>
         {tabs.map((tab) => {
-          const active = activeTab === tab.key;
+          const active =
+            activeTab === tab.key ||
+            (activeTab === "utility" && tab.key === "home") ||
+            (activeTab === "profile" && tab.key === "account");
 
           return (
             <Pressable

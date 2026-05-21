@@ -8,9 +8,32 @@ import {
   View,
   Alert,
 } from "react-native";
+import Card from "../components/Card";
 import { COLORS } from "../constants/theme";
 
 type Priority = "Cao" | "Trung bình" | "Thấp";
+
+type RepairRequest = {
+  id: number;
+  room: string;
+  type: string;
+  priority: Priority;
+  description: string;
+  status: "pending" | "processing" | "done";
+  createdAt: string;
+};
+
+const initialRequests: RepairRequest[] = [
+  {
+    id: 1,
+    room: "A101",
+    type: "Máy lạnh",
+    priority: "Cao",
+    description: "Máy lạnh không hoạt động, bật lên nhưng không mát.",
+    status: "processing",
+    createdAt: "20/05/2026",
+  },
+];
 
 export default function RepairScreen() {
   const [room] = useState("A101");
@@ -20,6 +43,8 @@ export default function RepairScreen() {
 
   const [typeError, setTypeError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
+
+  const [requests, setRequests] = useState<RepairRequest[]>(initialRequests);
 
   const handleSubmit = () => {
     let isValid = true;
@@ -43,10 +68,45 @@ export default function RepairScreen() {
 
     if (!isValid) return;
 
+    const newRequest: RepairRequest = {
+      id: Date.now(),
+      room,
+      type: type.trim(),
+      priority,
+      description: description.trim(),
+      status: "pending",
+      createdAt: "21/05/2026",
+    };
+
+    setRequests((prev) => [newRequest, ...prev]);
+
     Alert.alert("Thành công", "Yêu cầu sửa chữa đã được gửi");
+
     setType("");
     setPriority("Trung bình");
     setDescription("");
+  };
+
+  const handleDelete = (id: number) => {
+    setRequests((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const getPriorityStyle = (value: Priority) => {
+    if (value === "Cao") return styles.priorityHigh;
+    if (value === "Thấp") return styles.priorityLow;
+    return styles.priorityMedium;
+  };
+
+  const getStatusText = (status: RepairRequest["status"]) => {
+    if (status === "pending") return "Chờ tiếp nhận";
+    if (status === "processing") return "Đang xử lý";
+    return "Đã hoàn thành";
+  };
+
+  const getStatusStyle = (status: RepairRequest["status"]) => {
+    if (status === "done") return styles.statusDone;
+    if (status === "processing") return styles.statusProcessing;
+    return styles.statusPending;
   };
 
   return (
@@ -61,71 +121,116 @@ export default function RepairScreen() {
         Gửi thông tin sự cố để chủ trọ xử lý nhanh hơn.
       </Text>
 
-      <Text style={styles.label}>Phòng</Text>
-      <TextInput style={styles.inputDisabled} value={room} editable={false} />
+      <Card style={styles.formCard}>
+        <Text style={styles.sectionTitle}>Tạo yêu cầu mới</Text>
 
-      <Text style={styles.label}>Loại sự cố</Text>
-      <TextInput
-        style={[styles.input, typeError ? styles.inputError : null]}
-        value={type}
-        onChangeText={(value) => {
-          setType(value);
-          if (typeError) setTypeError("");
-        }}
-        placeholder="Điện, nước, internet, máy lạnh..."
-        placeholderTextColor={COLORS.muted}
-      />
-      {typeError ? <Text style={styles.errorText}>{typeError}</Text> : null}
+        <Text style={styles.label}>Phòng</Text>
+        <TextInput style={styles.inputDisabled} value={room} editable={false} />
 
-      <Text style={styles.label}>Mức độ ưu tiên</Text>
-      <View style={styles.priorityRow}>
-        {(["Cao", "Trung bình", "Thấp"] as Priority[]).map((item) => {
-          const active = priority === item;
+        <Text style={styles.label}>Loại sự cố</Text>
+        <TextInput
+          style={[styles.input, typeError ? styles.inputError : null]}
+          value={type}
+          onChangeText={(value) => {
+            setType(value);
+            if (typeError) setTypeError("");
+          }}
+          placeholder="Điện, nước, internet, máy lạnh..."
+          placeholderTextColor={COLORS.muted}
+        />
+        {typeError ? <Text style={styles.errorText}>{typeError}</Text> : null}
 
-          return (
-            <Pressable
-              key={item}
-              style={[styles.priorityButton, active && styles.priorityActive]}
-              onPress={() => setPriority(item)}
-            >
-              <Text
-                style={[
-                  styles.priorityText,
-                  active && styles.priorityTextActive,
-                ]}
+        <Text style={styles.label}>Mức độ ưu tiên</Text>
+        <View style={styles.priorityRow}>
+          {(["Cao", "Trung bình", "Thấp"] as Priority[]).map((item) => {
+            const active = priority === item;
+
+            return (
+              <Pressable
+                key={item}
+                style={[styles.priorityButton, active && styles.priorityActive]}
+                onPress={() => setPriority(item)}
               >
-                {item}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+                <Text
+                  style={[
+                    styles.priorityText,
+                    active && styles.priorityTextActive,
+                  ]}
+                >
+                  {item}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
-      <Text style={styles.label}>Mô tả</Text>
-      <TextInput
-        style={[styles.input, styles.textArea, descriptionError ? styles.inputError : null]}
-        value={description}
-        onChangeText={(value) => {
-          setDescription(value);
-          if (descriptionError) setDescriptionError("");
-        }}
-        placeholder="Ví dụ: Máy lạnh không hoạt động, nước chảy yếu..."
-        placeholderTextColor={COLORS.muted}
-        multiline
-      />
-      {descriptionError ? (
-        <Text style={styles.errorText}>{descriptionError}</Text>
-      ) : null}
+        <Text style={styles.label}>Mô tả</Text>
+        <TextInput
+          style={[
+            styles.input,
+            styles.textArea,
+            descriptionError ? styles.inputError : null,
+          ]}
+          value={description}
+          onChangeText={(value) => {
+            setDescription(value);
+            if (descriptionError) setDescriptionError("");
+          }}
+          placeholder="Ví dụ: Máy lạnh không hoạt động, nước chảy yếu..."
+          placeholderTextColor={COLORS.muted}
+          multiline
+        />
+        {descriptionError ? (
+          <Text style={styles.errorText}>{descriptionError}</Text>
+        ) : null}
 
-      <Pressable style={styles.uploadBox}>
-        <Text style={styles.uploadIcon}>＋</Text>
-        <Text style={styles.uploadText}>Upload ảnh sự cố</Text>
-        <Text style={styles.uploadHint}>PNG, JPG hoặc JPEG</Text>
-      </Pressable>
+        <Pressable style={styles.uploadBox}>
+          <Text style={styles.uploadIcon}>＋</Text>
+          <Text style={styles.uploadText}>Upload ảnh sự cố</Text>
+          <Text style={styles.uploadHint}>PNG, JPG hoặc JPEG</Text>
+        </Pressable>
 
-      <Pressable style={styles.submitButton} onPress={handleSubmit}>
-        <Text style={styles.submitText}>Gửi yêu cầu</Text>
-      </Pressable>
+        <Pressable style={styles.submitButton} onPress={handleSubmit}>
+          <Text style={styles.submitText}>Gửi yêu cầu</Text>
+        </Pressable>
+      </Card>
+
+      <Text style={styles.historyTitle}>Yêu cầu đã gửi</Text>
+
+      {requests.length === 0 ? (
+        <Card style={styles.emptyCard}>
+          <Text style={styles.emptyText}>Chưa có yêu cầu sửa chữa nào.</Text>
+        </Card>
+      ) : (
+        requests.map((item) => (
+          <Card key={item.id} style={styles.requestCard}>
+            <View style={styles.requestHeader}>
+              <View style={styles.requestLeft}>
+                <Text style={styles.requestTitle}>{item.type}</Text>
+                <Text style={styles.requestDate}>
+                  Phòng {item.room} • {item.createdAt}
+                </Text>
+              </View>
+
+              <View style={[styles.statusBadge, getStatusStyle(item.status)]}>
+                <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.requestDesc}>{item.description}</Text>
+
+            <View style={styles.requestFooter}>
+              <View style={[styles.priorityBadge, getPriorityStyle(item.priority)]}>
+                <Text style={styles.priorityBadgeText}>{item.priority}</Text>
+              </View>
+
+              <Pressable onPress={() => handleDelete(item.id)}>
+                <Text style={styles.deleteText}>Xóa</Text>
+              </Pressable>
+            </View>
+          </Card>
+        ))
+      )}
     </ScrollView>
   );
 }
@@ -152,6 +257,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: 6,
     marginBottom: 20,
+  },
+  formCard: {
+    marginBottom: 22,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: COLORS.text,
+    marginBottom: 12,
   },
   label: {
     fontSize: 13,
@@ -262,6 +376,97 @@ const styles = StyleSheet.create({
   submitText: {
     color: "#FFFFFF",
     fontSize: 15,
+    fontWeight: "900",
+  },
+  historyTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  emptyCard: {
+    alignItems: "center",
+  },
+  emptyText: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  requestCard: {
+    marginBottom: 12,
+  },
+  requestHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  requestLeft: {
+    flex: 1,
+  },
+  requestTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: COLORS.text,
+  },
+  requestDate: {
+    color: COLORS.muted,
+    fontSize: 12,
+    marginTop: 5,
+  },
+  statusBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  statusPending: {
+    backgroundColor: "#FFF4E5",
+  },
+  statusProcessing: {
+    backgroundColor: "#E6FAFF",
+  },
+  statusDone: {
+    backgroundColor: "#EAFBEF",
+  },
+  statusText: {
+    color: COLORS.text,
+    fontSize: 11,
+    fontWeight: "900",
+  },
+  requestDesc: {
+    color: COLORS.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 12,
+  },
+  requestFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 14,
+    alignItems: "center",
+  },
+  priorityBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  priorityHigh: {
+    backgroundColor: "#FFE8E8",
+  },
+  priorityMedium: {
+    backgroundColor: COLORS.orangeSoft,
+  },
+  priorityLow: {
+    backgroundColor: "#EAFBEF",
+  },
+  priorityBadgeText: {
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  deleteText: {
+    color: COLORS.red,
+    fontSize: 13,
     fontWeight: "900",
   },
 });
