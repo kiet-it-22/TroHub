@@ -1,23 +1,7 @@
 import React from "react";
 import { Modal, View, Text, Pressable, StyleSheet } from "react-native";
 import { COLORS } from "../constants/theme";
-
-export type Invoice = {
-  id: number;
-  month: string;
-  room: string;
-  amount: string;
-  status: "unpaid" | "paid";
-  statusText: string;
-  dueDate: string;
-  details: {
-    roomFee: string;
-    electric: string;
-    water: string;
-    parking: string;
-    internet: string;
-  };
-};
+import { Invoice } from "../types/Invoice";
 
 type Props = {
   visible: boolean;

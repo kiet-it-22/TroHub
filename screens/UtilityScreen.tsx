@@ -1,49 +1,49 @@
-import React from "react";
-import { ScrollView, Text, StyleSheet, View, Pressable } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  ScrollView,
+  Text,
+  StyleSheet,
+  View,
+  Pressable,
+  ActivityIndicator,
+} from "react-native";
 import Card from "../components/Card";
 import { COLORS } from "../constants/theme";
-
-const utilityHistory = [
-  {
-    month: "05/2026",
-    electricOld: 1200,
-    electricNew: 1280,
-    electricUsed: 80,
-    waterOld: 45,
-    waterNew: 54,
-    waterUsed: 9,
-    electricMoney: "320.000đ",
-    waterMoney: "135.000đ",
-  },
-  {
-    month: "04/2026",
-    electricOld: 1130,
-    electricNew: 1200,
-    electricUsed: 70,
-    waterOld: 37,
-    waterNew: 45,
-    waterUsed: 8,
-    electricMoney: "280.000đ",
-    waterMoney: "120.000đ",
-  },
-  {
-    month: "03/2026",
-    electricOld: 1065,
-    electricNew: 1130,
-    electricUsed: 65,
-    waterOld: 29,
-    waterNew: 37,
-    waterUsed: 8,
-    electricMoney: "260.000đ",
-    waterMoney: "120.000đ",
-  },
-];
+import { UtilityRecord } from "../types/UtilityRecord";
+import { utilityService } from "../services/utilityService";
 
 type Props = {
   onBack: () => void;
 };
 
 export default function UtilityScreen({ onBack }: Props) {
+  const [utilityHistory, setUtilityHistory] = useState<UtilityRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadUtilities();
+  }, []);
+
+  const loadUtilities = async () => {
+    try {
+      setIsLoading(true);
+      const data = await utilityService.getUtilities();
+      setUtilityHistory(data);
+    } catch (error) {
+      console.log("Lỗi load điện nước:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingBox}>
+        <ActivityIndicator size="large" color={COLORS.orange} />
+      </View>
+    );
+  }
+
   const current = utilityHistory[0];
 
   return (
@@ -61,60 +61,68 @@ export default function UtilityScreen({ onBack }: Props) {
         Theo dõi chỉ số điện nước và chi phí sử dụng hằng tháng.
       </Text>
 
-      <View style={styles.summaryRow}>
-        <Card style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Điện đã dùng</Text>
-          <Text style={styles.summaryNumber}>{current.electricUsed} kWh</Text>
-          <Text style={styles.summaryMoney}>{current.electricMoney}</Text>
+      {current ? (
+        <>
+          <View style={styles.summaryRow}>
+            <Card style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>Điện đã dùng</Text>
+              <Text style={styles.summaryNumber}>{current.electricUsed} kWh</Text>
+              <Text style={styles.summaryMoney}>{current.electricMoney}</Text>
+            </Card>
+
+            <Card style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>Nước đã dùng</Text>
+              <Text style={styles.summaryNumber}>{current.waterUsed} m³</Text>
+              <Text style={styles.summaryMoney}>{current.waterMoney}</Text>
+            </Card>
+          </View>
+
+          <Card style={styles.currentCard}>
+            <Text style={styles.sectionTitle}>Tháng {current.month}</Text>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Chỉ số điện cũ</Text>
+              <Text style={styles.infoValue}>{current.electricOld}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Chỉ số điện mới</Text>
+              <Text style={styles.infoValue}>{current.electricNew}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Đơn giá điện</Text>
+              <Text style={styles.infoValue}>4.000đ / kWh</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Chỉ số nước cũ</Text>
+              <Text style={styles.infoValue}>{current.waterOld}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Chỉ số nước mới</Text>
+              <Text style={styles.infoValue}>{current.waterNew}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Đơn giá nước</Text>
+              <Text style={styles.infoValue}>15.000đ / m³</Text>
+            </View>
+          </Card>
+        </>
+      ) : (
+        <Card style={styles.emptyCard}>
+          <Text style={styles.emptyText}>Chưa có dữ liệu điện nước.</Text>
         </Card>
-
-        <Card style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Nước đã dùng</Text>
-          <Text style={styles.summaryNumber}>{current.waterUsed} m³</Text>
-          <Text style={styles.summaryMoney}>{current.waterMoney}</Text>
-        </Card>
-      </View>
-
-      <Card style={styles.currentCard}>
-        <Text style={styles.sectionTitle}>Tháng {current.month}</Text>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Chỉ số điện cũ</Text>
-          <Text style={styles.infoValue}>{current.electricOld}</Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Chỉ số điện mới</Text>
-          <Text style={styles.infoValue}>{current.electricNew}</Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Đơn giá điện</Text>
-          <Text style={styles.infoValue}>4.000đ / kWh</Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Chỉ số nước cũ</Text>
-          <Text style={styles.infoValue}>{current.waterOld}</Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Chỉ số nước mới</Text>
-          <Text style={styles.infoValue}>{current.waterNew}</Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Đơn giá nước</Text>
-          <Text style={styles.infoValue}>15.000đ / m³</Text>
-        </View>
-      </Card>
+      )}
 
       <Text style={styles.historyTitle}>Lịch sử điện nước</Text>
 
       {utilityHistory.map((item) => (
-        <Card key={item.month} style={styles.historyCard}>
+        <Card key={item.id} style={styles.historyCard}>
           <View style={styles.historyHeader}>
             <Text style={styles.historyMonth}>Tháng {item.month}</Text>
             <Text style={styles.historyTotal}>
@@ -133,6 +141,12 @@ export default function UtilityScreen({ onBack }: Props) {
 }
 
 const styles = StyleSheet.create({
+  loadingBox: {
+    flex: 1,
+    backgroundColor: "#F4F5F7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   container: {
     flex: 1,
     backgroundColor: "#F4F5F7",
@@ -220,6 +234,15 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#F0F1F3",
     marginVertical: 8,
+  },
+  emptyCard: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  emptyText: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "700",
   },
   historyTitle: {
     fontSize: 16,

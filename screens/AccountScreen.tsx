@@ -3,8 +3,10 @@ import { ScrollView, Text, StyleSheet, View, Pressable } from "react-native";
 import Card from "../components/Card";
 import { COLORS } from "../constants/theme";
 import ChangePasswordModal from "../components/ChangePasswordModal";
+import { UserProfile } from "../types/UserProfile";
 
 type Props = {
+  profile: UserProfile;
   onLogout: () => void;
   onNavigate?: (screen: "invoice" | "contract" | "profile") => void;
 };
@@ -32,7 +34,11 @@ const menuItems = [
   },
 ];
 
-export default function AccountScreen({ onLogout, onNavigate }: Props) {
+export default function AccountScreen({
+  profile,
+  onLogout,
+  onNavigate,
+}: Props) {
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   const handleMenuPress = (key: string) => {
@@ -67,14 +73,16 @@ export default function AccountScreen({ onLogout, onNavigate }: Props) {
 
         <Card style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>A</Text>
+            <Text style={styles.avatarText}>
+              {profile.fullName.charAt(0).toUpperCase()}
+            </Text>
           </View>
 
-          <Text style={styles.name}>Nguyễn Văn A</Text>
-          <Text style={styles.phone}>0901234567</Text>
+          <Text style={styles.name}>{profile.fullName}</Text>
+          <Text style={styles.phone}>{profile.phone}</Text>
 
           <View style={styles.roomBadge}>
-            <Text style={styles.roomText}>Phòng A101</Text>
+            <Text style={styles.roomText}>Phòng {profile.room}</Text>
           </View>
         </Card>
 
@@ -162,6 +170,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "900",
     color: COLORS.text,
+    textAlign: "center",
   },
   phone: {
     color: COLORS.muted,

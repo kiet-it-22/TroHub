@@ -9,11 +9,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { COLORS } from "../constants/theme";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 type Props = {
-  onLogin: () => void;
+  onLogin: (phone: string, password: string) => Promise<void>;
 };
 
 export default function LoginScreen({ onLogin }: Props) {
@@ -22,6 +25,9 @@ export default function LoginScreen({ onLogin }: Props) {
 
   const [phoneError, setPhoneError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [forgotVisible, setForgotVisible] = useState(false);
 
   const handlePhoneChange = (value: string) => {
     const onlyNumber = value.replace(/[^0-9]/g, "");
@@ -40,7 +46,7 @@ export default function LoginScreen({ onLogin }: Props) {
     }
   };
 
-  const validateLogin = () => {
+  const validateLogin = async () => {
     let isValid = true;
 
     if (!phone.trim()) {
@@ -63,8 +69,16 @@ export default function LoginScreen({ onLogin }: Props) {
       setPasswordError("");
     }
 
-    if (isValid) {
-      onLogin();
+    if (!isValid) return;
+
+    try {
+      setIsSubmitting(true);
+      await onLogin(phone, password);
+    } catch (error) {
+      console.log("Lỗi đăng nhập:", error);
+      Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -90,10 +104,7 @@ export default function LoginScreen({ onLogin }: Props) {
             <View style={styles.form}>
               <Text style={styles.label}>Số điện thoại</Text>
               <TextInput
-                style={[
-                  styles.input,
-                  phoneError ? styles.inputError : null,
-                ]}
+                style={[styles.input, phoneError ? styles.inputError : null]}
                 value={phone}
                 onChangeText={handlePhoneChange}
                 placeholder=""
@@ -104,6 +115,7 @@ export default function LoginScreen({ onLogin }: Props) {
                 autoComplete="off"
                 textContentType="none"
                 importantForAutofill="no"
+                editable={!isSubmitting}
               />
               {phoneError ? (
                 <Text style={styles.errorText}>{phoneError}</Text>
@@ -111,10 +123,7 @@ export default function LoginScreen({ onLogin }: Props) {
 
               <Text style={styles.label}>Mật khẩu</Text>
               <TextInput
-                style={[
-                  styles.input,
-                  passwordError ? styles.inputError : null,
-                ]}
+                style={[styles.input, passwordError ? styles.inputError : null]}
                 value={password}
                 onChangeText={handlePasswordChange}
                 placeholder=""
@@ -124,22 +133,42 @@ export default function LoginScreen({ onLogin }: Props) {
                 autoComplete="off"
                 textContentType="none"
                 importantForAutofill="no"
+                editable={!isSubmitting}
               />
               {passwordError ? (
                 <Text style={styles.errorText}>{passwordError}</Text>
               ) : null}
 
-              <Pressable style={styles.primaryButton} onPress={validateLogin}>
-                <Text style={styles.primaryText}>Đăng nhập</Text>
+              <Pressable
+                style={[
+                  styles.primaryButton,
+                  isSubmitting && styles.primaryButtonDisabled,
+                ]}
+                onPress={validateLogin}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.primaryText}>Đăng nhập</Text>
+                )}
               </Pressable>
 
-              <Pressable>
+              <Pressable
+                disabled={isSubmitting}
+                onPress={() => setForgotVisible(true)}
+              >
                 <Text style={styles.forgot}>Quên mật khẩu?</Text>
               </Pressable>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ForgotPasswordModal
+        visible={forgotVisible}
+        onClose={() => setForgotVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -226,6 +255,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 26,
+  },
+  primaryButtonDisabled: {
+    opacity: 0.75,
   },
   primaryText: {
     color: "#FFFFFF",

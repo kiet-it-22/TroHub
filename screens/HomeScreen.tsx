@@ -1,19 +1,51 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   Text,
   StyleSheet,
   View,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import Card from "../components/Card";
 import { COLORS } from "../constants/theme";
+import { HomeData } from "../types/HomeData";
+import { homeService } from "../services/homeService";
 
 type Props = {
   onNavigate: (screen: "invoice" | "repair" | "contract" | "utility") => void;
 };
 
 export default function HomeScreen({ onNavigate }: Props) {
+  const [homeData, setHomeData] = useState<HomeData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadHomeData();
+  }, []);
+
+  const loadHomeData = async () => {
+    try {
+      setIsLoading(true);
+      const data = await homeService.getHomeData();
+      setHomeData(data);
+    } catch (error) {
+      console.log("Lỗi load trang chủ:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading || !homeData) {
+    return (
+      <View style={styles.loadingBox}>
+        <ActivityIndicator size="large" color={COLORS.orange} />
+      </View>
+    );
+  }
+
+  const isUnpaid = homeData.paymentStatus === "unpaid";
+
   return (
     <ScrollView
       style={styles.container}
@@ -22,26 +54,30 @@ export default function HomeScreen({ onNavigate }: Props) {
     >
       <View style={styles.header}>
         <View>
-          <Text style={styles.hello}>Xin chào, Nguyễn Văn A</Text>
-          <Text style={styles.room}>Phòng A101</Text>
+          <Text style={styles.hello}>Xin chào, {homeData.tenantName}</Text>
+          <Text style={styles.room}>Phòng {homeData.room}</Text>
         </View>
       </View>
 
       <Card style={styles.amountCard}>
         <Text style={styles.smallText}>Tổng tiền</Text>
 
-        <Text style={styles.amount}>3.255.000đ</Text>
+        <Text style={styles.amount}>{homeData.totalAmount}</Text>
 
-        <Text style={styles.unpaid}>Chưa thanh toán</Text>
+        <Text style={isUnpaid ? styles.unpaid : styles.paid}>
+          {homeData.paymentStatusText}
+        </Text>
 
-        <Text style={styles.smallText}>Hạn thanh toán: 05/06/2026</Text>
+        <Text style={styles.smallText}>Hạn thanh toán: {homeData.dueDate}</Text>
 
-        <Pressable
-          style={styles.primaryButton}
-          onPress={() => onNavigate("invoice")}
-        >
-          <Text style={styles.primaryText}>Thanh toán ngay</Text>
-        </Pressable>
+        {isUnpaid && (
+          <Pressable
+            style={styles.primaryButton}
+            onPress={() => onNavigate("invoice")}
+          >
+            <Text style={styles.primaryText}>Thanh toán ngay</Text>
+          </Pressable>
+        )}
       </Card>
 
       <View style={styles.quickGrid}>
@@ -85,16 +121,18 @@ export default function HomeScreen({ onNavigate }: Props) {
       <Pressable onPress={() => onNavigate("contract")}>
         <Card style={styles.infoCard}>
           <Text style={styles.cardTitle}>Hợp đồng</Text>
-          <Text style={styles.cardDesc}>Ngày hết hạn: 30/12/2026</Text>
+          <Text style={styles.cardDesc}>
+            Ngày hết hạn: {homeData.contractEndDate}
+          </Text>
         </Card>
       </Pressable>
 
       <Pressable onPress={() => onNavigate("repair")}>
         <Card style={styles.infoCard}>
-          <Text style={styles.cardTitle}>Máy lạnh không hoạt động</Text>
+          <Text style={styles.cardTitle}>{homeData.recentRepair.title}</Text>
 
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>Đang xử lý</Text>
+            <Text style={styles.badgeText}>{homeData.recentRepair.status}</Text>
           </View>
         </Card>
       </Pressable>
@@ -103,6 +141,12 @@ export default function HomeScreen({ onNavigate }: Props) {
 }
 
 const styles = StyleSheet.create({
+  loadingBox: {
+    flex: 1,
+    backgroundColor: "#F4F5F7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   container: {
     flex: 1,
     backgroundColor: "#F4F5F7",
@@ -142,6 +186,12 @@ const styles = StyleSheet.create({
   },
   unpaid: {
     color: COLORS.orange,
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 12,
+  },
+  paid: {
+    color: COLORS.green,
     fontSize: 13,
     fontWeight: "800",
     marginBottom: 12,

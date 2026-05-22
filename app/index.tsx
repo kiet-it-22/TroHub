@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, SafeAreaView, ActivityIndicator } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import BottomNav from "../components/BottomNav";
 import LoginScreen from "../screens/LoginScreen";
@@ -12,6 +11,10 @@ import AccountScreen from "../screens/AccountScreen";
 import UtilityScreen from "../screens/UtilityScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 
+import { UserProfile } from "../types/UserProfile";
+import { authService } from "../services/authService";
+import { userService } from "../services/userService";
+
 type Tab =
   | "home"
   | "invoice"
@@ -21,52 +24,70 @@ type Tab =
   | "utility"
   | "profile";
 
-const LOGIN_KEY = "TROHUB_IS_LOGGED_IN";
-
 export default function App() {
-  const [isCheckingLogin, setIsCheckingLogin] = useState(true);
+  const [isChecking, setIsChecking] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    checkLoginStatus();
+    loadAppData();
   }, []);
 
-  const checkLoginStatus = async () => {
+  const loadAppData = async () => {
     try {
-      const savedLoginStatus = await AsyncStorage.getItem(LOGIN_KEY);
+      const loggedIn = await authService.checkLogin();
 
-      if (savedLoginStatus === "true") {
-        setIsLoggedIn(true);
+      setIsLoggedIn(loggedIn);
+
+      if (loggedIn) {
+        const userProfile = await userService.getProfile();
+        setProfile(userProfile);
       }
     } catch (error) {
-      console.log("Lỗi kiểm tra đăng nhập:", error);
+      console.log("Lỗi tải dữ liệu app:", error);
     } finally {
-      setIsCheckingLogin(false);
+      setIsChecking(false);
     }
   };
 
-  const handleLogin = async () => {
-    try {
-      await AsyncStorage.setItem(LOGIN_KEY, "true");
-      setIsLoggedIn(true);
-      setActiveTab("home");
-    } catch (error) {
-      console.log("Lỗi lưu đăng nhập:", error);
-    }
-  };
+ const handleLogin = async (phone: string, password: string) => {
+  try {
+    await authService.login(phone, password);
+
+    const userProfile = await userService.getProfile();
+
+    setProfile(userProfile);
+    setIsLoggedIn(true);
+    setActiveTab("home");
+  } catch (error) {
+    console.log("Lỗi xử lý đăng nhập:", error);
+    throw error;
+  }
+};
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem(LOGIN_KEY);
+      await authService.logout();
+
       setIsLoggedIn(false);
+      setProfile(null);
       setActiveTab("home");
     } catch (error) {
-      console.log("Lỗi đăng xuất:", error);
+      console.log("Lỗi xử lý đăng xuất:", error);
     }
   };
 
-  if (isCheckingLogin) {
+  const handleSaveProfile = async (newProfile: UserProfile) => {
+    try {
+      const updatedProfile = await userService.updateProfile(newProfile);
+      setProfile(updatedProfile);
+    } catch (error) {
+      console.log("Lỗi lưu profile:", error);
+    }
+  };
+
+  if (isChecking) {
     return (
       <SafeAreaView style={styles.loadingSafe}>
         <ActivityIndicator size="large" color="#FF6A21" />
@@ -74,7 +95,7 @@ export default function App() {
     );
   }
 
-  if (!isLoggedIn) {
+  if (!isLoggedIn || !profile) {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
@@ -97,11 +118,16 @@ export default function App() {
           )}
 
           {activeTab === "profile" && (
-            <ProfileScreen onBack={() => setActiveTab("account")} />
+            <ProfileScreen
+              profile={profile}
+              onSave={handleSaveProfile}
+              onBack={() => setActiveTab("account")}
+            />
           )}
 
           {activeTab === "account" && (
             <AccountScreen
+              profile={profile}
               onLogout={handleLogout}
               onNavigate={(screen) => setActiveTab(screen)}
             />

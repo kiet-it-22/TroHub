@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   Text,
@@ -7,33 +7,16 @@ import {
   Pressable,
   View,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import Card from "../components/Card";
 import { COLORS } from "../constants/theme";
-
-type Priority = "Cao" | "Trung bình" | "Thấp";
-
-type RepairRequest = {
-  id: number;
-  room: string;
-  type: string;
-  priority: Priority;
-  description: string;
-  status: "pending" | "processing" | "done";
-  createdAt: string;
-};
-
-const initialRequests: RepairRequest[] = [
-  {
-    id: 1,
-    room: "A101",
-    type: "Máy lạnh",
-    priority: "Cao",
-    description: "Máy lạnh không hoạt động, bật lên nhưng không mát.",
-    status: "processing",
-    createdAt: "20/05/2026",
-  },
-];
+import {
+  Priority,
+  RepairRequest,
+  RepairStatus,
+} from "../types/RepairRequest";
+import { repairService } from "../services/repairService";
 
 export default function RepairScreen() {
   const [room] = useState("A101");
@@ -44,9 +27,26 @@ export default function RepairScreen() {
   const [typeError, setTypeError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
 
-  const [requests, setRequests] = useState<RepairRequest[]>(initialRequests);
+  const [requests, setRequests] = useState<RepairRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleSubmit = () => {
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
+  const loadRequests = async () => {
+    try {
+      setIsLoading(true);
+      const data = await repairService.getRequests();
+      setRequests(data);
+    } catch (error) {
+      console.log("Lỗi load yêu cầu sửa chữa:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
     let isValid = true;
 
     if (!type.trim()) {
@@ -68,27 +68,35 @@ export default function RepairScreen() {
 
     if (!isValid) return;
 
-    const newRequest: RepairRequest = {
-      id: Date.now(),
-      room,
-      type: type.trim(),
-      priority,
-      description: description.trim(),
-      status: "pending",
-      createdAt: "21/05/2026",
-    };
+    try {
+      const updatedRequests = await repairService.createRequest({
+        room,
+        type: type.trim(),
+        priority,
+        description: description.trim(),
+      });
 
-    setRequests((prev) => [newRequest, ...prev]);
+      setRequests(updatedRequests);
 
-    Alert.alert("Thành công", "Yêu cầu sửa chữa đã được gửi");
+      Alert.alert("Thành công", "Yêu cầu sửa chữa đã được gửi");
 
-    setType("");
-    setPriority("Trung bình");
-    setDescription("");
+      setType("");
+      setPriority("Trung bình");
+      setDescription("");
+    } catch (error) {
+      console.log("Lỗi gửi yêu cầu:", error);
+      Alert.alert("Lỗi", "Không thể gửi yêu cầu sửa chữa");
+    }
   };
 
-  const handleDelete = (id: number) => {
-    setRequests((prev) => prev.filter((item) => item.id !== id));
+  const handleDelete = async (id: number) => {
+    try {
+      const updatedRequests = await repairService.deleteRequest(id);
+      setRequests(updatedRequests);
+    } catch (error) {
+      console.log("Lỗi xóa yêu cầu:", error);
+      Alert.alert("Lỗi", "Không thể xóa yêu cầu sửa chữa");
+    }
   };
 
   const getPriorityStyle = (value: Priority) => {
@@ -97,17 +105,25 @@ export default function RepairScreen() {
     return styles.priorityMedium;
   };
 
-  const getStatusText = (status: RepairRequest["status"]) => {
+  const getStatusText = (status: RepairStatus) => {
     if (status === "pending") return "Chờ tiếp nhận";
     if (status === "processing") return "Đang xử lý";
     return "Đã hoàn thành";
   };
 
-  const getStatusStyle = (status: RepairRequest["status"]) => {
+  const getStatusStyle = (status: RepairStatus) => {
     if (status === "done") return styles.statusDone;
     if (status === "processing") return styles.statusProcessing;
     return styles.statusPending;
   };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingBox}>
+        <ActivityIndicator size="large" color={COLORS.orange} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -213,14 +229,18 @@ export default function RepairScreen() {
               </View>
 
               <View style={[styles.statusBadge, getStatusStyle(item.status)]}>
-                <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+                <Text style={styles.statusText}>
+                  {getStatusText(item.status)}
+                </Text>
               </View>
             </View>
 
             <Text style={styles.requestDesc}>{item.description}</Text>
 
             <View style={styles.requestFooter}>
-              <View style={[styles.priorityBadge, getPriorityStyle(item.priority)]}>
+              <View
+                style={[styles.priorityBadge, getPriorityStyle(item.priority)]}
+              >
                 <Text style={styles.priorityBadgeText}>{item.priority}</Text>
               </View>
 
@@ -236,6 +256,12 @@ export default function RepairScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadingBox: {
+    flex: 1,
+    backgroundColor: "#F4F5F7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   container: {
     flex: 1,
     backgroundColor: "#F4F5F7",

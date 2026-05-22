@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Modal, View, Text, Pressable, StyleSheet } from "react-native";
 import { COLORS } from "../constants/theme";
-import { Invoice } from "./InvoiceDetailModal";
+import { Invoice } from "../types/Invoice";
 
 type PaymentMethod = "bank" | "vnpay" | "zalopay";
 

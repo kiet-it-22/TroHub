@@ -17,24 +17,23 @@ type Props = {
   onClose: () => void;
 };
 
-export default function ChangePasswordModal({ visible, onClose }: Props) {
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [oldError, setOldError] = useState("");
-  const [newError, setNewError] = useState("");
-  const [confirmError, setConfirmError] = useState("");
-
+export default function ForgotPasswordModal({ visible, onClose }: Props) {
+  const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const handlePhoneChange = (value: string) => {
+    const onlyNumber = value.replace(/[^0-9]/g, "");
+    setPhone(onlyNumber);
+
+    if (phoneError) {
+      setPhoneError("");
+    }
+  };
+
   const resetForm = () => {
-    setOldPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setOldError("");
-    setNewError("");
-    setConfirmError("");
+    setPhone("");
+    setPhoneError("");
     setIsSubmitting(false);
   };
 
@@ -46,34 +45,14 @@ export default function ChangePasswordModal({ visible, onClose }: Props) {
   const handleSubmit = async () => {
     let isValid = true;
 
-    if (!oldPassword.trim()) {
-      setOldError("Vui lòng nhập mật khẩu hiện tại");
+    if (!phone.trim()) {
+      setPhoneError("Vui lòng nhập số điện thoại");
+      isValid = false;
+    } else if (phone.length !== 10) {
+      setPhoneError("Số điện thoại phải gồm đúng 10 số");
       isValid = false;
     } else {
-      setOldError("");
-    }
-
-    if (!newPassword.trim()) {
-      setNewError("Vui lòng nhập mật khẩu mới");
-      isValid = false;
-    } else if (newPassword.length <= 6) {
-      setNewError("Mật khẩu mới phải trên 6 ký tự");
-      isValid = false;
-    } else if (newPassword === oldPassword) {
-      setNewError("Mật khẩu mới không được trùng mật khẩu hiện tại");
-      isValid = false;
-    } else {
-      setNewError("");
-    }
-
-    if (!confirmPassword.trim()) {
-      setConfirmError("Vui lòng xác nhận mật khẩu mới");
-      isValid = false;
-    } else if (confirmPassword !== newPassword) {
-      setConfirmError("Mật khẩu xác nhận không khớp");
-      isValid = false;
-    } else {
-      setConfirmError("");
+      setPhoneError("");
     }
 
     if (!isValid) return;
@@ -81,13 +60,17 @@ export default function ChangePasswordModal({ visible, onClose }: Props) {
     try {
       setIsSubmitting(true);
 
-      await authService.changePassword(oldPassword, newPassword);
+      await authService.forgotPassword(phone);
 
-      Alert.alert("Thành công", "Đổi mật khẩu thành công");
+      Alert.alert(
+        "Thành công",
+        "Hướng dẫn khôi phục mật khẩu đã được gửi đến số điện thoại của bạn."
+      );
+
       handleClose();
     } catch (error) {
-      console.log("Lỗi đổi mật khẩu:", error);
-      Alert.alert("Lỗi", "Không thể đổi mật khẩu. Vui lòng thử lại.");
+      console.log("Lỗi gửi yêu cầu quên mật khẩu:", error);
+      Alert.alert("Lỗi", "Không thể gửi yêu cầu. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }
@@ -99,9 +82,9 @@ export default function ChangePasswordModal({ visible, onClose }: Props) {
         <View style={styles.box}>
           <View style={styles.header}>
             <View style={styles.headerText}>
-              <Text style={styles.title}>Đổi mật khẩu</Text>
+              <Text style={styles.title}>Quên mật khẩu</Text>
               <Text style={styles.subtitle}>
-                Cập nhật mật khẩu đăng nhập tài khoản
+                Nhập số điện thoại để nhận hướng dẫn khôi phục mật khẩu.
               </Text>
             </View>
 
@@ -114,49 +97,17 @@ export default function ChangePasswordModal({ visible, onClose }: Props) {
             </Pressable>
           </View>
 
-          <Text style={styles.label}>Mật khẩu hiện tại</Text>
+          <Text style={styles.label}>Số điện thoại</Text>
           <TextInput
-            style={[styles.input, oldError ? styles.inputError : null]}
-            value={oldPassword}
-            onChangeText={(value) => {
-              setOldPassword(value);
-              if (oldError) setOldError("");
-            }}
-            secureTextEntry
+            style={[styles.input, phoneError ? styles.inputError : null]}
+            value={phone}
+            onChangeText={handlePhoneChange}
+            keyboardType="phone-pad"
+            maxLength={10}
             placeholder=""
             editable={!isSubmitting}
           />
-          {oldError ? <Text style={styles.errorText}>{oldError}</Text> : null}
-
-          <Text style={styles.label}>Mật khẩu mới</Text>
-          <TextInput
-            style={[styles.input, newError ? styles.inputError : null]}
-            value={newPassword}
-            onChangeText={(value) => {
-              setNewPassword(value);
-              if (newError) setNewError("");
-            }}
-            secureTextEntry
-            placeholder=""
-            editable={!isSubmitting}
-          />
-          {newError ? <Text style={styles.errorText}>{newError}</Text> : null}
-
-          <Text style={styles.label}>Xác nhận mật khẩu mới</Text>
-          <TextInput
-            style={[styles.input, confirmError ? styles.inputError : null]}
-            value={confirmPassword}
-            onChangeText={(value) => {
-              setConfirmPassword(value);
-              if (confirmError) setConfirmError("");
-            }}
-            secureTextEntry
-            placeholder=""
-            editable={!isSubmitting}
-          />
-          {confirmError ? (
-            <Text style={styles.errorText}>{confirmError}</Text>
-          ) : null}
+          {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
 
           <Pressable
             style={[styles.button, isSubmitting && styles.buttonDisabled]}
@@ -166,7 +117,7 @@ export default function ChangePasswordModal({ visible, onClose }: Props) {
             {isSubmitting ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.buttonText}>Cập nhật mật khẩu</Text>
+              <Text style={styles.buttonText}>Gửi yêu cầu</Text>
             )}
           </Pressable>
         </View>

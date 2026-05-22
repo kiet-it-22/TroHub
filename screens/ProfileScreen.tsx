@@ -10,18 +10,21 @@ import {
 } from "react-native";
 import Card from "../components/Card";
 import { COLORS } from "../constants/theme";
+import { UserProfile } from "../types/UserProfile";
 
 type Props = {
+  profile: UserProfile;
+  onSave: (profile: UserProfile) => void;
   onBack: () => void;
 };
 
-export default function ProfileScreen({ onBack }: Props) {
-  const [fullName, setFullName] = useState("Nguyễn Văn A");
-  const [phone, setPhone] = useState("0901234567");
-  const [email, setEmail] = useState("nguyenvana@gmail.com");
-  const [cccd, setCccd] = useState("012345678901");
-  const [room, setRoom] = useState("A101");
-  const [startDate, setStartDate] = useState("01/01/2026");
+export default function ProfileScreen({ profile, onSave, onBack }: Props) {
+  const [fullName, setFullName] = useState(profile.fullName);
+  const [phone, setPhone] = useState(profile.phone);
+  const [email, setEmail] = useState(profile.email);
+  const [cccd, setCccd] = useState(profile.cccd);
+  const [room] = useState(profile.room);
+  const [startDate] = useState(profile.startDate);
 
   const [fullNameError, setFullNameError] = useState("");
   const [phoneError, setPhoneError] = useState("");
@@ -57,6 +60,18 @@ export default function ProfileScreen({ onBack }: Props) {
 
     if (!isValid) return;
 
+    const updatedProfile: UserProfile = {
+      id: profile.id,
+      fullName: fullName.trim(),
+      phone,
+      email: email.trim(),
+      cccd,
+      room,
+      startDate,
+    };
+
+    onSave(updatedProfile);
+
     Alert.alert("Thành công", "Thông tin cá nhân đã được cập nhật");
   };
 
@@ -78,7 +93,9 @@ export default function ProfileScreen({ onBack }: Props) {
 
       <Card style={styles.avatarCard}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>A</Text>
+          <Text style={styles.avatarText}>
+            {fullName ? fullName.charAt(0).toUpperCase() : "A"}
+          </Text>
         </View>
 
         <Text style={styles.name}>{fullName || "Người thuê"}</Text>
@@ -138,18 +155,12 @@ export default function ProfileScreen({ onBack }: Props) {
         />
 
         <Text style={styles.label}>Phòng</Text>
-        <TextInput
-          style={styles.inputDisabled}
-          value={room}
-          onChangeText={setRoom}
-          editable={false}
-        />
+        <TextInput style={styles.inputDisabled} value={room} editable={false} />
 
         <Text style={styles.label}>Ngày bắt đầu thuê</Text>
         <TextInput
           style={styles.inputDisabled}
           value={startDate}
-          onChangeText={setStartDate}
           editable={false}
         />
 
@@ -215,6 +226,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "900",
     color: COLORS.text,
+    textAlign: "center",
   },
   roomText: {
     color: COLORS.orange,

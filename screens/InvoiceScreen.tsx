@@ -1,103 +1,72 @@
-import React, { useState } from "react";
-import { ScrollView, Text, StyleSheet, View, Pressable } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  ScrollView,
+  Text,
+  StyleSheet,
+  View,
+  Pressable,
+  ActivityIndicator,
+} from "react-native";
 import Card from "../components/Card";
 import { COLORS } from "../constants/theme";
-import InvoiceDetailModal, {
-  Invoice,
-} from "../components/InvoiceDetailModal";
+import InvoiceDetailModal from "../components/InvoiceDetailModal";
 import PaymentModal from "../components/PaymentModal";
+import { Invoice } from "../types/Invoice";
+import { invoiceService } from "../services/invoiceService";
 
 type FilterType = "all" | "unpaid" | "paid";
 
-const initialInvoices: Invoice[] = [
-  {
-    id: 1,
-    month: "05/2026",
-    room: "A101",
-    amount: "3.255.000đ",
-    status: "unpaid",
-    statusText: "Chưa thanh toán",
-    dueDate: "05/06/2026",
-    details: {
-      roomFee: "2.500.000đ",
-      electric: "320.000đ",
-      water: "135.000đ",
-      parking: "200.000đ",
-      internet: "100.000đ",
-    },
-  },
-  {
-    id: 2,
-    month: "04/2026",
-    room: "A101",
-    amount: "3.120.000đ",
-    status: "paid",
-    statusText: "Đã thanh toán",
-    dueDate: "05/05/2026",
-    details: {
-      roomFee: "2.500.000đ",
-      electric: "280.000đ",
-      water: "120.000đ",
-      parking: "200.000đ",
-      internet: "20.000đ",
-    },
-  },
-  {
-    id: 3,
-    month: "03/2026",
-    room: "A101",
-    amount: "3.080.000đ",
-    status: "paid",
-    statusText: "Đã thanh toán",
-    dueDate: "05/04/2026",
-    details: {
-      roomFee: "2.500.000đ",
-      electric: "260.000đ",
-      water: "120.000đ",
-      parking: "200.000đ",
-      internet: "0đ",
-    },
-  },
-];
-
 export default function InvoiceScreen() {
   const [filter, setFilter] = useState<FilterType>("all");
-  const [invoiceList, setInvoiceList] = useState<Invoice[]>(initialInvoices);
+  const [invoiceList, setInvoiceList] = useState<Invoice[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadInvoices();
+  }, []);
+
+  const loadInvoices = async () => {
+    try {
+      setIsLoading(true);
+      const data = await invoiceService.getInvoices();
+      setInvoiceList(data);
+    } catch (error) {
+      console.log("Lỗi load hóa đơn:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredInvoices = invoiceList.filter((item) => {
     if (filter === "all") return true;
     return item.status === filter;
   });
 
-  const handlePayment = (invoiceId: number) => {
-    setInvoiceList((prevList) =>
-      prevList.map((item) =>
-        item.id === invoiceId
-          ? {
-              ...item,
-              status: "paid",
-              statusText: "Đã thanh toán",
-            }
-          : item
-      )
-    );
+  const handlePayment = async (invoiceId: number) => {
+    try {
+      const updatedInvoices = await invoiceService.payInvoice(invoiceId);
 
-    if (selectedInvoice?.id === invoiceId) {
-      setSelectedInvoice({
-        ...selectedInvoice,
-        status: "paid",
-        statusText: "Đã thanh toán",
-      });
-    }
+      setInvoiceList(updatedInvoices);
 
-    if (paymentInvoice?.id === invoiceId) {
-      setPaymentInvoice({
-        ...paymentInvoice,
-        status: "paid",
-        statusText: "Đã thanh toán",
-      });
+      const updatedSelectedInvoice = updatedInvoices.find(
+        (item) => item.id === selectedInvoice?.id
+      );
+
+      const updatedPaymentInvoice = updatedInvoices.find(
+        (item) => item.id === paymentInvoice?.id
+      );
+
+      if (updatedSelectedInvoice) {
+        setSelectedInvoice(updatedSelectedInvoice);
+      }
+
+      if (updatedPaymentInvoice) {
+        setPaymentInvoice(updatedPaymentInvoice);
+      }
+    } catch (error) {
+      console.log("Lỗi xử lý thanh toán:", error);
     }
   };
 
@@ -113,6 +82,14 @@ export default function InvoiceScreen() {
       setPaymentInvoice(invoice);
     }
   };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingBox}>
+        <ActivityIndicator size="large" color={COLORS.orange} />
+      </View>
+    );
+  }
 
   return (
     <>
@@ -176,62 +153,68 @@ export default function InvoiceScreen() {
           </Pressable>
         </View>
 
-        {filteredInvoices.map((invoice) => {
-          const isPaid = invoice.status === "paid";
+        {filteredInvoices.length === 0 ? (
+          <Card style={styles.emptyCard}>
+            <Text style={styles.emptyText}>Không có hóa đơn phù hợp.</Text>
+          </Card>
+        ) : (
+          filteredInvoices.map((invoice) => {
+            const isPaid = invoice.status === "paid";
 
-          return (
-            <Card key={invoice.id} style={styles.invoiceCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardLeft}>
-                  <Text style={styles.cardTitle}>
-                    Hóa đơn tháng {invoice.month}
-                  </Text>
-                  <Text style={styles.room}>Phòng {invoice.room}</Text>
-                </View>
+            return (
+              <Card key={invoice.id} style={styles.invoiceCard}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardLeft}>
+                    <Text style={styles.cardTitle}>
+                      Hóa đơn tháng {invoice.month}
+                    </Text>
+                    <Text style={styles.room}>Phòng {invoice.room}</Text>
+                  </View>
 
-                <View
-                  style={[
-                    styles.statusBadge,
-                    isPaid ? styles.paidBadge : styles.unpaidBadge,
-                  ]}
-                >
-                  <Text
+                  <View
                     style={[
-                      styles.statusText,
-                      isPaid ? styles.paidText : styles.unpaidText,
+                      styles.statusBadge,
+                      isPaid ? styles.paidBadge : styles.unpaidBadge,
                     ]}
                   >
-                    {invoice.statusText}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.statusText,
+                        isPaid ? styles.paidText : styles.unpaidText,
+                      ]}
+                    >
+                      {invoice.statusText}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              <Text style={styles.amount}>{invoice.amount}</Text>
+                <Text style={styles.amount}>{invoice.amount}</Text>
 
-              <Text style={styles.dueDate}>
-                Hạn thanh toán: {invoice.dueDate}
-              </Text>
+                <Text style={styles.dueDate}>
+                  Hạn thanh toán: {invoice.dueDate}
+                </Text>
 
-              <View style={styles.actionRow}>
-                {!isPaid && (
+                <View style={styles.actionRow}>
+                  {!isPaid && (
+                    <Pressable
+                      style={styles.payButton}
+                      onPress={() => openPaymentModal(invoice)}
+                    >
+                      <Text style={styles.payText}>Thanh toán</Text>
+                    </Pressable>
+                  )}
+
                   <Pressable
-                    style={styles.payButton}
-                    onPress={() => openPaymentModal(invoice)}
+                    style={styles.detailButton}
+                    onPress={() => setSelectedInvoice(invoice)}
                   >
-                    <Text style={styles.payText}>Thanh toán</Text>
+                    <Text style={styles.detailText}>Xem chi tiết</Text>
                   </Pressable>
-                )}
-
-                <Pressable
-                  style={styles.detailButton}
-                  onPress={() => setSelectedInvoice(invoice)}
-                >
-                  <Text style={styles.detailText}>Xem chi tiết</Text>
-                </Pressable>
-              </View>
-            </Card>
-          );
-        })}
+                </View>
+              </Card>
+            );
+          })
+        )}
       </ScrollView>
 
       <InvoiceDetailModal
@@ -252,6 +235,12 @@ export default function InvoiceScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadingBox: {
+    flex: 1,
+    backgroundColor: "#F4F5F7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   container: {
     flex: 1,
     backgroundColor: "#F4F5F7",
@@ -292,6 +281,14 @@ const styles = StyleSheet.create({
   },
   filterTextActive: {
     color: "#FFFFFF",
+  },
+  emptyCard: {
+    alignItems: "center",
+  },
+  emptyText: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "700",
   },
   invoiceCard: {
     marginBottom: 14,
