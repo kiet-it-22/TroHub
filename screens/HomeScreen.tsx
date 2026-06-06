@@ -13,16 +13,17 @@ import { HomeData } from "../types/HomeData";
 import { homeService } from "../services/homeService";
 
 type Props = {
+  refreshKey: number;
   onNavigate: (screen: "invoice" | "repair" | "contract" | "utility") => void;
 };
 
-export default function HomeScreen({ onNavigate }: Props) {
+export default function HomeScreen({ refreshKey, onNavigate }: Props) {
   const [homeData, setHomeData] = useState<HomeData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadHomeData();
-  }, []);
+  }, [refreshKey]);
 
   const loadHomeData = async () => {
     try {

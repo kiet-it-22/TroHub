@@ -29,6 +29,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [homeRefreshKey, setHomeRefreshKey] = useState(0);
 
   useEffect(() => {
     loadAppData();
@@ -51,20 +52,21 @@ export default function App() {
     }
   };
 
- const handleLogin = async (phone: string, password: string) => {
-  try {
-    await authService.login(phone, password);
+  const handleLogin = async (phone: string, password: string) => {
+    try {
+      await authService.login(phone, password);
 
-    const userProfile = await userService.getProfile();
+      const userProfile = await userService.getProfile();
 
-    setProfile(userProfile);
-    setIsLoggedIn(true);
-    setActiveTab("home");
-  } catch (error) {
-    console.log("Lỗi xử lý đăng nhập:", error);
-    throw error;
-  }
-};
+      setProfile(userProfile);
+      setIsLoggedIn(true);
+      setActiveTab("home");
+      setHomeRefreshKey((prev) => prev + 1);
+    } catch (error) {
+      console.log("Lỗi xử lý đăng nhập:", error);
+      throw error;
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -73,6 +75,7 @@ export default function App() {
       setIsLoggedIn(false);
       setProfile(null);
       setActiveTab("home");
+      setHomeRefreshKey(0);
     } catch (error) {
       console.log("Lỗi xử lý đăng xuất:", error);
     }
@@ -82,9 +85,18 @@ export default function App() {
     try {
       const updatedProfile = await userService.updateProfile(newProfile);
       setProfile(updatedProfile);
+      setHomeRefreshKey((prev) => prev + 1);
     } catch (error) {
       console.log("Lỗi lưu profile:", error);
     }
+  };
+
+  const handleChangeTab = (tab: Tab) => {
+    if (tab === "home") {
+      setHomeRefreshKey((prev) => prev + 1);
+    }
+
+    setActiveTab(tab);
   };
 
   if (isChecking) {
@@ -104,7 +116,10 @@ export default function App() {
       <View style={styles.phone}>
         <View style={styles.content}>
           {activeTab === "home" && (
-            <HomeScreen onNavigate={(screen) => setActiveTab(screen)} />
+            <HomeScreen
+              refreshKey={homeRefreshKey}
+              onNavigate={(screen) => setActiveTab(screen)}
+            />
           )}
 
           {activeTab === "invoice" && <InvoiceScreen />}
@@ -134,7 +149,7 @@ export default function App() {
           )}
         </View>
 
-        <BottomNav activeTab={activeTab} onChangeTab={setActiveTab} />
+        <BottomNav activeTab={activeTab} onChangeTab={handleChangeTab} />
       </View>
     </SafeAreaView>
   );
