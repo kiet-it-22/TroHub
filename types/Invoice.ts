@@ -1,9 +1,11 @@
+export type InvoiceStatus = "unpaid" | "paid";
+
 export type Invoice = {
-  id: number;
+  id: string;
   month: string;
   room: string;
   amount: string;
-  status: "unpaid" | "paid";
+  status: InvoiceStatus;
   statusText: string;
   dueDate: string;
   details: {

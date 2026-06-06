@@ -1,75 +1,108 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UtilityRecord } from "../types/UtilityRecord";
+import { apiClient } from "./apiClient";
 import { authService } from "./authService";
-// import { apiClient } from "./apiClient";
 
-const UTILITY_KEY = "TROHUB_UTILITY_RECORDS";
+type ApiService = {
+  _id: string;
+  name?: string;
+  unit?: string;
+  type?: number;
+};
 
-const initialUtilities: UtilityRecord[] = [
-  {
-    id: 1,
-    month: "05/2026",
-    electricOld: 1200,
-    electricNew: 1280,
-    electricUsed: 80,
-    waterOld: 45,
-    waterNew: 54,
-    waterUsed: 9,
-    electricMoney: "320.000đ",
-    waterMoney: "135.000đ",
-  },
-  {
-    id: 2,
-    month: "04/2026",
-    electricOld: 1130,
-    electricNew: 1200,
-    electricUsed: 70,
-    waterOld: 37,
-    waterNew: 45,
-    waterUsed: 8,
-    electricMoney: "280.000đ",
-    waterMoney: "120.000đ",
-  },
-  {
-    id: 3,
-    month: "03/2026",
-    electricOld: 1065,
-    electricNew: 1130,
-    electricUsed: 65,
-    waterOld: 29,
-    waterNew: 37,
-    waterUsed: 8,
-    electricMoney: "260.000đ",
-    waterMoney: "120.000đ",
-  },
-];
+type ApiInvoiceDetail = {
+  serviceId?: ApiService | string;
+  oldIndex?: number | null;
+  newIndex?: number | null;
+  quantity?: number;
+  appliedPrice?: number;
+  amount?: number;
+};
+
+type ApiInvoice = {
+  _id: string;
+  period: string;
+  dueDate?: string;
+  totalAmount?: number;
+  status: number;
+  details?: ApiInvoiceDetail[];
+};
+
+type InvoiceListResponse = {
+  success: boolean;
+  data: ApiInvoice[];
+  message?: string;
+};
+
+const formatMoney = (value?: number) => {
+  const amount = value || 0;
+  return `${amount.toLocaleString("vi-VN")}đ`;
+};
+
+const getServiceName = (detail: ApiInvoiceDetail) => {
+  if (!detail.serviceId || typeof detail.serviceId === "string") {
+    return "";
+  }
+
+  return (detail.serviceId.name || "").toLowerCase();
+};
+
+const isElectricDetail = (detail: ApiInvoiceDetail) => {
+  const name = getServiceName(detail);
+  return name.includes("điện") || name.includes("dien");
+};
+
+const isWaterDetail = (detail: ApiInvoiceDetail) => {
+  const name = getServiceName(detail);
+  return name.includes("nước") || name.includes("nuoc");
+};
+
+const mapInvoiceToUtility = (invoice: ApiInvoice): UtilityRecord => {
+  const details = invoice.details || [];
+
+  const electricDetail = details.find(isElectricDetail);
+  const waterDetail = details.find(isWaterDetail);
+
+  return {
+    id: invoice._id,
+    month: invoice.period,
+
+    electricOld: electricDetail?.oldIndex || 0,
+    electricNew: electricDetail?.newIndex || 0,
+    electricUsed: electricDetail?.quantity || 0,
+
+    waterOld: waterDetail?.oldIndex || 0,
+    waterNew: waterDetail?.newIndex || 0,
+    waterUsed: waterDetail?.quantity || 0,
+
+    electricMoney: formatMoney(electricDetail?.amount),
+    waterMoney: formatMoney(waterDetail?.amount),
+  };
+};
 
 export const utilityService = {
   async getUtilities(): Promise<UtilityRecord[]> {
     try {
-      /**
-       * Sau này có API:
-       * const token = await authService.getToken();
-       * return await apiClient.get<UtilityRecord[]>("/utilities", token);
-       */
-
       const token = await authService.getToken();
 
       if (!token) {
         throw new Error("Không tìm thấy token đăng nhập");
       }
 
-      const savedUtilities = await AsyncStorage.getItem(UTILITY_KEY);
+      const response = await apiClient.get<InvoiceListResponse>(
+        "/invoices",
+        token
+      );
 
-      if (savedUtilities) {
-        return JSON.parse(savedUtilities);
+      if (!response.success) {
+        throw new Error(response.message || "Không lấy được dữ liệu điện nước");
       }
 
-      await AsyncStorage.setItem(UTILITY_KEY, JSON.stringify(initialUtilities));
-      return initialUtilities;
+      const invoices = response.data || [];
+
+      return invoices.map(mapInvoiceToUtility);
     } catch (error) {
-      console.log("Lỗi lấy dữ liệu điện nước:", error);
-      return initialUtilities;
+      console.log("Lỗi lấy dữ liệu điện nước từ API:", error);
+      throw error;
     }
   },
 };

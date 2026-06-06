@@ -9,7 +9,7 @@ type Props = {
   visible: boolean;
   invoice: Invoice | null;
   onClose: () => void;
-  onConfirm: (invoiceId: number) => void;
+ onConfirm: (invoiceId: string) => void;
 };
 
 export default function PaymentModal({

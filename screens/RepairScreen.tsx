@@ -89,7 +89,7 @@ export default function RepairScreen() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     try {
       const updatedRequests = await repairService.deleteRequest(id);
       setRequests(updatedRequests);

@@ -1,120 +1,178 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Invoice } from "../types/Invoice";
 import { authService } from "./authService";
-// import { apiClient } from "./apiClient";
+import { apiClient } from "./apiClient";
 
-const INVOICE_KEY = "TROHUB_INVOICES";
+type ApiService = {
+  _id: string;
+  name?: string;
+  unit?: string;
+  type?: number;
+};
 
-const initialInvoices: Invoice[] = [
-  {
-    id: 1,
-    month: "05/2026",
-    room: "A101",
-    amount: "3.255.000đ",
-    status: "unpaid",
-    statusText: "Chưa thanh toán",
-    dueDate: "05/06/2026",
+type ApiInvoiceDetail = {
+  serviceId?: ApiService | string;
+  oldIndex?: number | null;
+  newIndex?: number | null;
+  quantity?: number;
+  appliedPrice?: number;
+  amount?: number;
+};
+
+type ApiInvoice = {
+  _id: string;
+  contractId?: {
+    _id: string;
+    roomId?: {
+      _id: string;
+      roomCode?: string;
+    };
+    tenantId?: {
+      _id: string;
+      fullName?: string;
+    };
+    fixedRentPrice?: number;
+  };
+  period: string;
+  dueDate?: string;
+  totalAmount?: number;
+  status: number;
+  details?: ApiInvoiceDetail[];
+};
+
+type InvoiceListResponse = {
+  success: boolean;
+  data: ApiInvoice[];
+  message?: string;
+};
+
+type PayInvoiceResponse = {
+  success: boolean;
+  message: string;
+  transaction?: unknown;
+};
+
+const formatMoney = (value?: number) => {
+  const amount = value || 0;
+  return `${amount.toLocaleString("vi-VN")}đ`;
+};
+
+const formatDate = (value?: string) => {
+  if (!value) return "Không có";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Không có";
+  }
+
+  return date.toLocaleDateString("vi-VN");
+};
+
+const getServiceName = (detail: ApiInvoiceDetail) => {
+  if (!detail.serviceId || typeof detail.serviceId === "string") {
+    return "";
+  }
+
+  return (detail.serviceId.name || "").toLowerCase();
+};
+
+const sumDetailByKeyword = (details: ApiInvoiceDetail[], keywords: string[]) => {
+  return details
+    .filter((detail) => {
+      const name = getServiceName(detail);
+      return keywords.some((keyword) => name.includes(keyword));
+    })
+    .reduce((total, detail) => total + (detail.amount || 0), 0);
+};
+
+const mapApiInvoiceToInvoice = (apiInvoice: ApiInvoice): Invoice => {
+  const details = apiInvoice.details || [];
+
+  const electricAmount = sumDetailByKeyword(details, ["điện", "dien"]);
+  const waterAmount = sumDetailByKeyword(details, ["nước", "nuoc"]);
+  const parkingAmount = sumDetailByKeyword(details, ["xe", "parking"]);
+  const internetAmount = sumDetailByKeyword(details, [
+    "internet",
+    "wifi",
+    "mạng",
+    "mang",
+  ]);
+
+  const serviceTotal =
+    electricAmount + waterAmount + parkingAmount + internetAmount;
+
+  const totalAmount = apiInvoice.totalAmount || 0;
+  const roomFee = Math.max(totalAmount - serviceTotal, 0);
+
+  const isPaid = apiInvoice.status === 1;
+
+  return {
+    id: apiInvoice._id,
+    month: apiInvoice.period,
+    room: apiInvoice.contractId?.roomId?.roomCode || "A101",
+    amount: formatMoney(totalAmount),
+    status: isPaid ? "paid" : "unpaid",
+    statusText: isPaid ? "Đã thanh toán" : "Chưa thanh toán",
+    dueDate: formatDate(apiInvoice.dueDate),
     details: {
-      roomFee: "2.500.000đ",
-      electric: "320.000đ",
-      water: "135.000đ",
-      parking: "200.000đ",
-      internet: "100.000đ",
+      roomFee: formatMoney(roomFee),
+      electric: formatMoney(electricAmount),
+      water: formatMoney(waterAmount),
+      parking: formatMoney(parkingAmount),
+      internet: formatMoney(internetAmount),
     },
-  },
-  {
-    id: 2,
-    month: "04/2026",
-    room: "A101",
-    amount: "3.120.000đ",
-    status: "paid",
-    statusText: "Đã thanh toán",
-    dueDate: "05/05/2026",
-    details: {
-      roomFee: "2.500.000đ",
-      electric: "280.000đ",
-      water: "120.000đ",
-      parking: "200.000đ",
-      internet: "20.000đ",
-    },
-  },
-  {
-    id: 3,
-    month: "03/2026",
-    room: "A101",
-    amount: "3.080.000đ",
-    status: "paid",
-    statusText: "Đã thanh toán",
-    dueDate: "05/04/2026",
-    details: {
-      roomFee: "2.500.000đ",
-      electric: "260.000đ",
-      water: "120.000đ",
-      parking: "200.000đ",
-      internet: "0đ",
-    },
-  },
-];
+  };
+};
 
 export const invoiceService = {
   async getInvoices(): Promise<Invoice[]> {
     try {
-      /**
-       * Hiện tại chưa có backend nên lấy từ AsyncStorage.
-       * Sau này có API thì đổi thành:
-       *
-       * const token = await authService.getToken();
-       * return await apiClient.get<Invoice[]>("/invoices", token);
-       */
-
-      const savedInvoices = await AsyncStorage.getItem(INVOICE_KEY);
-
-      if (savedInvoices) {
-        return JSON.parse(savedInvoices);
-      }
-
-      await AsyncStorage.setItem(INVOICE_KEY, JSON.stringify(initialInvoices));
-      return initialInvoices;
-    } catch (error) {
-      console.log("Lỗi lấy danh sách hóa đơn:", error);
-      return initialInvoices;
-    }
-  },
-
-  async payInvoice(invoiceId: number): Promise<Invoice[]> {
-    try {
-      /**
-       * Hiện tại chưa có backend nên update local.
-       * Sau này có API thì đổi thành:
-       *
-       * const token = await authService.getToken();
-       * await apiClient.post(`/invoices/${invoiceId}/pay`, {}, token);
-       * return await this.getInvoices();
-       */
-
       const token = await authService.getToken();
 
       if (!token) {
         throw new Error("Không tìm thấy token đăng nhập");
       }
 
-      const invoices = await this.getInvoices();
-
-      const updatedInvoices = invoices.map((item) =>
-        item.id === invoiceId
-          ? {
-              ...item,
-              status: "paid" as const,
-              statusText: "Đã thanh toán",
-            }
-          : item
+      const response = await apiClient.get<InvoiceListResponse>(
+        "/invoices",
+        token
       );
 
-      await AsyncStorage.setItem(INVOICE_KEY, JSON.stringify(updatedInvoices));
+      if (!response.success) {
+        throw new Error(response.message || "Không lấy được danh sách hóa đơn");
+      }
 
-      return updatedInvoices;
+      return response.data.map(mapApiInvoiceToInvoice);
     } catch (error) {
-      console.log("Lỗi thanh toán hóa đơn:", error);
+      console.log("Lỗi lấy danh sách hóa đơn từ API:", error);
+      throw error;
+    }
+  },
+
+  async payInvoice(invoiceId: string): Promise<Invoice[]> {
+    try {
+      const token = await authService.getToken();
+
+      if (!token) {
+        throw new Error("Không tìm thấy token đăng nhập");
+      }
+
+      const response = await apiClient.put<PayInvoiceResponse>(
+        `/invoices/${invoiceId}/pay`,
+        {
+          method: "Mobile App",
+          gatewayReference: `TROHUB_${Date.now()}`,
+        },
+        token
+      );
+
+      if (!response.success) {
+        throw new Error(response.message || "Thanh toán hóa đơn thất bại");
+      }
+
+      return await this.getInvoices();
+    } catch (error) {
+      console.log("Lỗi thanh toán hóa đơn qua API:", error);
       throw error;
     }
   },

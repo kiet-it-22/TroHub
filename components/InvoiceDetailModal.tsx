@@ -7,7 +7,7 @@ type Props = {
   visible: boolean;
   invoice: Invoice | null;
   onClose: () => void;
-  onPay: (invoiceId: number) => void;
+  onPay: (invoiceId: string) => void;
 };
 
 export default function InvoiceDetailModal({

@@ -3,60 +3,57 @@ import { userService } from "./userService";
 import { invoiceService } from "./invoiceService";
 import { repairService } from "./repairService";
 import { contractService } from "./contractService";
-// import { apiClient } from "./apiClient";
-// import { authService } from "./authService";
+
+const getRepairStatusText = (status?: string) => {
+  if (status === "pending") return "Chờ tiếp nhận";
+  if (status === "processing") return "Đang xử lý";
+  if (status === "done") return "Đã hoàn thành";
+  return "Không có";
+};
 
 export const homeService = {
   async getHomeData(): Promise<HomeData> {
     try {
-      /**
-       * Sau này có API:
-       * const token = await authService.getToken();
-       * return await apiClient.get<HomeData>("/home", token);
-       */
-
-      const profile = await userService.getProfile();
-      const invoices = await invoiceService.getInvoices();
-      const repairs = await repairService.getRequests();
-      const contract = await contractService.getContract();
+      const [profile, invoices, repairs, contract] = await Promise.all([
+        userService.getProfile(),
+        invoiceService.getInvoices(),
+        repairService.getRequests(),
+        contractService.getContract(),
+      ]);
 
       const unpaidInvoice = invoices.find((item) => item.status === "unpaid");
       const latestRepair = repairs[0];
 
       return {
-        tenantName: profile.fullName,
-        room: profile.room,
+        tenantName: profile.fullName || "Người thuê",
+        room: contract.room || profile.room || "Chưa có phòng",
+
         totalAmount: unpaidInvoice?.amount || "0đ",
         paymentStatus: unpaidInvoice ? "unpaid" : "paid",
         paymentStatusText: unpaidInvoice ? "Chưa thanh toán" : "Đã thanh toán",
         dueDate: unpaidInvoice?.dueDate || "Không có",
-        contractEndDate: contract.endDate,
+
+        contractEndDate: contract.endDate || "Không có",
+
         recentRepair: {
           title: latestRepair?.description || "Không có yêu cầu sửa chữa",
-          status:
-            latestRepair?.status === "pending"
-              ? "Chờ tiếp nhận"
-              : latestRepair?.status === "processing"
-              ? "Đang xử lý"
-              : latestRepair?.status === "done"
-              ? "Đã hoàn thành"
-              : "Không có",
+          status: getRepairStatusText(latestRepair?.status),
         },
       };
     } catch (error) {
       console.log("Lỗi lấy dữ liệu trang chủ:", error);
 
       return {
-        tenantName: "Nguyễn Văn A",
-        room: "A101",
-        totalAmount: "3.255.000đ",
-        paymentStatus: "unpaid",
-        paymentStatusText: "Chưa thanh toán",
-        dueDate: "05/06/2026",
-        contractEndDate: "30/12/2026",
+        tenantName: "Người thuê",
+        room: "Chưa có phòng",
+        totalAmount: "0đ",
+        paymentStatus: "paid",
+        paymentStatusText: "Đã thanh toán",
+        dueDate: "Không có",
+        contractEndDate: "Không có",
         recentRepair: {
-          title: "Máy lạnh không hoạt động",
-          status: "Đang xử lý",
+          title: "Không có yêu cầu sửa chữa",
+          status: "Không có",
         },
       };
     }

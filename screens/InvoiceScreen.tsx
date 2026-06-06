@@ -44,7 +44,7 @@ export default function InvoiceScreen() {
     return item.status === filter;
   });
 
-  const handlePayment = async (invoiceId: number) => {
+  const handlePayment = async (invoiceId: string) => {
     try {
       const updatedInvoices = await invoiceService.payInvoice(invoiceId);
 
@@ -74,7 +74,7 @@ export default function InvoiceScreen() {
     setPaymentInvoice(invoice);
   };
 
-  const openPaymentFromDetail = (invoiceId: number) => {
+const openPaymentFromDetail = (invoiceId: string) => {
     const invoice = invoiceList.find((item) => item.id === invoiceId);
 
     if (invoice) {

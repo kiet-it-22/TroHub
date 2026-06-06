@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:3000/api";
+import { API_BASE_URL } from "../constants/api";
 
 type RequestMethod = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -13,7 +13,13 @@ export const apiClient = {
     const { method = "GET", body, token } = options;
 
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const url = `${API_BASE_URL}${endpoint}`;
+
+      //console.log("API URL:", url);
+      //console.log("API METHOD:", method);
+      //console.log("API BODY:", body);
+
+      const response = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -22,13 +28,17 @@ export const apiClient = {
         body: body ? JSON.stringify(body) : undefined,
       });
 
-      const data = await response.json();
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : null;
+
+     // console.log("API STATUS:", response.status);
+      //console.log("API RESPONSE:", data);
 
       if (!response.ok) {
-        throw new Error(data.message || "Có lỗi xảy ra khi gọi API");
+        throw new Error(data?.message || "Có lỗi xảy ra khi gọi API");
       }
 
-      return data;
+      return data as T;
     } catch (error) {
       console.log("API error:", error);
       throw error;

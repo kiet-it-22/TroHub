@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F4F5F7",
   },
   phone: {
-    flex: 1,
+    flex: 1, 
     width: "100%",
     maxWidth: 430,
     alignSelf: "center",

@@ -3,7 +3,7 @@ export type Priority = "Cao" | "Trung bình" | "Thấp";
 export type RepairStatus = "pending" | "processing" | "done";
 
 export type RepairRequest = {
-  id: number;
+  id: string;
   room: string;
   type: string;
   priority: Priority;
