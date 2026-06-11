@@ -10,16 +10,19 @@ type Tab =
   | "contract"
   | "account"
   | "utility"
-  | "profile";
+  | "profile"
+  | "rooms"
+  | "tenants";
 
 type Props = {
   activeTab: Tab;
   onChangeTab: (tab: Tab) => void;
+  role: number; // 1: Chủ trọ, 2: Người thuê
 };
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
-const tabs: {
+const tenantTabs: {
   key: Tab;
   label: string;
   icon: IconName;
@@ -57,7 +60,47 @@ const tabs: {
   },
 ];
 
-export default function BottomNav({ activeTab, onChangeTab }: Props) {
+const landlordTabs: {
+  key: Tab;
+  label: string;
+  icon: IconName;
+  activeIcon: IconName;
+}[] = [
+  {
+    key: "home",
+    label: "Thống kê",
+    icon: "grid-outline",
+    activeIcon: "grid",
+  },
+  {
+    key: "rooms",
+    label: "Phòng trọ",
+    icon: "home-outline",
+    activeIcon: "home",
+  },
+  {
+    key: "tenants",
+    label: "Khách thuê",
+    icon: "people-outline",
+    activeIcon: "people",
+  },
+  {
+    key: "invoice",
+    label: "Hóa đơn",
+    icon: "receipt-outline",
+    activeIcon: "receipt",
+  },
+  {
+    key: "repair",
+    label: "Sự cố",
+    icon: "construct-outline",
+    activeIcon: "construct",
+  },
+];
+
+export default function BottomNav({ activeTab, onChangeTab, role }: Props) {
+  const tabs = role === 1 ? landlordTabs : tenantTabs;
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.container}>

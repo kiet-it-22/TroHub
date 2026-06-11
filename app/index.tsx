@@ -10,6 +10,11 @@ import ContractScreen from "../screens/ContractScreen";
 import AccountScreen from "../screens/AccountScreen";
 import UtilityScreen from "../screens/UtilityScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import AdminDashboardScreen from "../screens/AdminDashboardScreen";
+import AdminRoomsScreen from "../screens/AdminRoomsScreen";
+import AdminTenantsScreen from "../screens/AdminTenantsScreen";
+import AdminInvoicesScreen from "../screens/AdminInvoicesScreen";
+import AdminRepairsScreen from "../screens/AdminRepairsScreen";
 
 import { UserProfile } from "../types/UserProfile";
 import { authService } from "../services/authService";
@@ -22,7 +27,9 @@ type Tab =
   | "contract"
   | "account"
   | "utility"
-  | "profile";
+  | "profile"
+  | "rooms"
+  | "tenants";
 
 export default function App() {
   const [isChecking, setIsChecking] = useState(true);
@@ -115,41 +122,62 @@ export default function App() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.phone}>
         <View style={styles.content}>
-          {activeTab === "home" && (
-            <HomeScreen
-              refreshKey={homeRefreshKey}
-              onNavigate={(screen) => setActiveTab(screen)}
-            />
-          )}
+          {profile.role === 1 ? (
+            <>
+              {activeTab === "home" && (
+                <AdminDashboardScreen
+                  onNavigate={(screen) => setActiveTab(screen)}
+                  onLogout={handleLogout}
+                />
+              )}
 
-          {activeTab === "invoice" && <InvoiceScreen />}
+              {activeTab === "rooms" && <AdminRoomsScreen />}
 
-          {activeTab === "repair" && <RepairScreen />}
+              {activeTab === "tenants" && <AdminTenantsScreen />}
 
-          {activeTab === "contract" && <ContractScreen />}
+              {activeTab === "invoice" && <AdminInvoicesScreen />}
 
-          {activeTab === "utility" && (
-            <UtilityScreen onBack={() => setActiveTab("home")} />
-          )}
+              {activeTab === "repair" && <AdminRepairsScreen />}
+            </>
+          ) : (
+            <>
+              {activeTab === "home" && (
+                <HomeScreen
+                  refreshKey={homeRefreshKey}
+                  onNavigate={(screen) => setActiveTab(screen)}
+                />
+              )}
 
-          {activeTab === "profile" && (
-            <ProfileScreen
-              profile={profile}
-              onSave={handleSaveProfile}
-              onBack={() => setActiveTab("account")}
-            />
-          )}
+              {activeTab === "invoice" && <InvoiceScreen />}
 
-          {activeTab === "account" && (
-            <AccountScreen
-              profile={profile}
-              onLogout={handleLogout}
-              onNavigate={(screen) => setActiveTab(screen)}
-            />
+              {activeTab === "repair" && <RepairScreen />}
+
+              {activeTab === "contract" && <ContractScreen />}
+
+              {activeTab === "utility" && (
+                <UtilityScreen onBack={() => setActiveTab("home")} />
+              )}
+
+              {activeTab === "profile" && (
+                <ProfileScreen
+                  profile={profile}
+                  onSave={handleSaveProfile}
+                  onBack={() => setActiveTab("account")}
+                />
+              )}
+
+              {activeTab === "account" && (
+                <AccountScreen
+                  profile={profile}
+                  onLogout={handleLogout}
+                  onNavigate={(screen) => setActiveTab(screen)}
+                />
+              )}
+            </>
           )}
         </View>
 
-        <BottomNav activeTab={activeTab} onChangeTab={handleChangeTab} />
+        <BottomNav activeTab={activeTab} onChangeTab={handleChangeTab} role={profile.role} />
       </View>
     </SafeAreaView>
   );

@@ -43,8 +43,8 @@ export const authService = {
         throw new Error(response.message || "Đăng nhập thất bại");
       }
 
-      if (response.user.role !== 2) {
-        throw new Error("Tài khoản này không phải tài khoản người thuê");
+      if (response.user.role !== 1 && response.user.role !== 2) {
+        throw new Error("Tài khoản không có quyền truy cập ứng dụng");
       }
 
       await AsyncStorage.setItem(TOKEN_KEY, response.token);

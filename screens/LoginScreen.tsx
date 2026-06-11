@@ -30,8 +30,7 @@ export default function LoginScreen({ onLogin }: Props) {
   const [forgotVisible, setForgotVisible] = useState(false);
 
   const handlePhoneChange = (value: string) => {
-    const onlyNumber = value.replace(/[^0-9]/g, "");
-    setPhone(onlyNumber);
+    setPhone(value);
 
     if (phoneError) {
       setPhoneError("");
@@ -50,10 +49,7 @@ export default function LoginScreen({ onLogin }: Props) {
     let isValid = true;
 
     if (!phone.trim()) {
-      setPhoneError("Vui lòng nhập số điện thoại");
-      isValid = false;
-    } else if (phone.length !== 10) {
-      setPhoneError("Số điện thoại phải gồm đúng 10 số");
+      setPhoneError("Vui lòng nhập số điện thoại hoặc email");
       isValid = false;
     } else {
       setPhoneError("");
@@ -62,8 +58,8 @@ export default function LoginScreen({ onLogin }: Props) {
     if (!password.trim()) {
       setPasswordError("Vui lòng nhập mật khẩu");
       isValid = false;
-    } else if (password.length <= 6) {
-      setPasswordError("Mật khẩu phải trên 6 ký tự");
+    } else if (password.length < 6) {
+      setPasswordError("Mật khẩu phải từ 6 ký tự trở lên");
       isValid = false;
     } else {
       setPasswordError("");
@@ -76,7 +72,7 @@ export default function LoginScreen({ onLogin }: Props) {
       await onLogin(phone, password);
     } catch (error) {
       console.log("Lỗi đăng nhập:", error);
-      Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại.");
+      Alert.alert("Lỗi", error instanceof Error ? error.message : "Đăng nhập thất bại. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }
@@ -99,17 +95,15 @@ export default function LoginScreen({ onLogin }: Props) {
               <Text style={styles.logoText}>TroHub</Text>
             </View>
 
-            <Text style={styles.title}>Đăng nhập tài khoản thuê phòng</Text>
+            <Text style={styles.title}>Đăng nhập hệ thống TroHub</Text>
 
             <View style={styles.form}>
-              <Text style={styles.label}>Số điện thoại</Text>
+              <Text style={styles.label}>Số điện thoại hoặc Email</Text>
               <TextInput
                 style={[styles.input, phoneError ? styles.inputError : null]}
                 value={phone}
                 onChangeText={handlePhoneChange}
-                placeholder=""
-                keyboardType="phone-pad"
-                maxLength={10}
+                placeholder="Nhập SĐT hoặc email đăng nhập"
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="off"

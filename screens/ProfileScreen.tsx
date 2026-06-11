@@ -68,6 +68,7 @@ export default function ProfileScreen({ profile, onSave, onBack }: Props) {
       cccd,
       room,
       startDate,
+      role: profile.role,
     };
 
     onSave(updatedProfile);

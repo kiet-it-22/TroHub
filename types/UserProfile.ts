@@ -6,4 +6,5 @@ export type UserProfile = {
   cccd: string;
   room: string;
   startDate: string;
+  role: number; // 1: Chủ trọ, 2: Người thuê
 };

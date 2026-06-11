@@ -36,6 +36,7 @@ const defaultProfile: UserProfile = {
   cccd: "012345678901",
   room: "A101",
   startDate: "01/01/2026",
+  role: 2,
 };
 
 const mapApiUserToProfile = (user: ApiUser): UserProfile => {
@@ -47,6 +48,7 @@ const mapApiUserToProfile = (user: ApiUser): UserProfile => {
     cccd: user.idCard || "",
     room: "A101",
     startDate: "01/01/2026",
+    role: user.role || 2,
   };
 };
 
